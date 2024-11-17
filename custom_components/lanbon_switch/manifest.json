@@ -1,0 +1,8 @@
+{
+    "domain": "lanbon_switch",
+    "name": "LANBON Switch",
+    "version": "1.0",
+    "requirements": [],
+    "dependencies": ["mqtt"],
+    "codeowners": ["@jkfran"]
+}
