@@ -17,12 +17,14 @@
 ## Installation
 
 ### HACS Installation (Recommended)
+
 1. Open the HACS panel in Home Assistant.
 2. Click on the `Integrations` tab and then click `+ Explore & Download Repositories`.
 3. Search for `LanbonHAIntegration` and install the integration.
 4. Restart Home Assistant.
 
 ### Manual Installation
+
 1. Download the latest release from the [Releases](https://github.com/your-username/LanbonHAIntegration/releases) page.
 2. Extract the files to the `custom_components/lanbon_switch` directory in your Home Assistant configuration folder.
 3. Restart Home Assistant.
@@ -34,6 +36,7 @@
 This integration requires no manual configuration for discovery. LANBON devices will automatically appear in Home Assistant once connected to the MQTT server.
 
 ### MQTT Configuration for LANBON Devices
+
 Ensure your LANBON devices are configured to publish MQTT messages with the following topic structure:
 
 ```
@@ -41,14 +44,16 @@ homeassistant/<device_id>/switch/<switch_id>/state
 ```
 
 Example:
-- **State Topic**: `homeassistant/l8hs4/switch/04/state`
-- **Command Topic**: `homeassistant/l8hs4/switch/04/set`
+
+- **State Topic**: `homeassistant/D6925E1A7741/switch/08F9E003F138-01/state`
+- **Command Topic**: `homeassistant/D6925E1A7741/switch/08F9E003F138-01/set`
 
 ---
 
 ## Known Issues
 
 ### 4-Gang Switch Fix (`L8-HS4`)
+
 - Due to hardware constraints, controlling `gang4` requires temporarily toggling `gang1`. This workaround ensures `gang4` operates correctly without impacting the rest of the device's functionality.
 
 ---
@@ -56,11 +61,13 @@ Example:
 ## Troubleshooting
 
 ### Devices Not Detected
+
 - Confirm that your LANBON devices are publishing MQTT messages using the correct topic format.
 - Check the MQTT broker logs to ensure messages are being received.
 - Restart Home Assistant to force a discovery sync.
 
 ### Incorrect or Missing States
+
 - Verify that the devices are powered on and correctly configured.
 - Check the `state` topic for accurate status updates.
 
