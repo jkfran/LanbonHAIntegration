@@ -19,7 +19,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     for device_id, switches in known_devices.items():
         for switch_id, switch_info in switches.items():
             topic_state = f"{TOPIC_PREFIX}{switch_info['device_id_raw']}/{SWITCH_SUBTOPIC}/{switch_info['switch_id_raw']}/state"
-            _LOGGER.warning("Adding entity for device: %s, switch: %s", device_id, switch_id)
+            _LOGGER.debug("Adding entity for device: %s, switch: %s", device_id, switch_id)
             entities.append(
                 LANBONSwitch(
                     hass,

@@ -54,7 +54,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     async def discover_device(msg):
         topic = msg.topic
         payload = msg.payload
-        _LOGGER.warning("Received discovery message on topic: %s, payload: %s", topic, payload)
+        _LOGGER.debug("Received discovery message on topic: %s, payload: %s", topic, payload)
 
         # Expected topic: homeassistant/<device_id>/switch/<switch_id>/state
         parts = topic.split('/')
@@ -64,7 +64,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
         _, device_id_raw, switch_subtopic, switch_id_raw, state_subtopic = parts
         if switch_subtopic != SWITCH_SUBTOPIC or state_subtopic != STATE_SUBTOPIC:
-            _LOGGER.warning("Topic does not match expected subtopics")
+            _LOGGER.debug("Topic does not match expected subtopics")
             return
 
         # Normalize IDs
@@ -74,7 +74,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         entity_id = f"{device_id}_{switch_id}"
 
         if entity_id in hass.data[DOMAIN]["entities"]:
-            _LOGGER.warning("Entity already exists: %s", entity_id)
             return
 
         # Store the set topic for synchronization
@@ -99,7 +98,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
         # Forward setup only if not already done
         if not hass.data[DOMAIN]["platform_switch_setup_done"]:
-            _LOGGER.warning("Forwarding entry setup for switches")
+            _LOGGER.debug("Forwarding entry setup for switches")
             hass.async_create_task(
                 hass.config_entries.async_forward_entry_setup(entry, "switch")
             )
@@ -121,7 +120,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Subscribe to state topics for discovery
     await mqtt.async_subscribe(hass, f"{TOPIC_PREFIX}+/switch/+/state", discover_device)
-    _LOGGER.warning("Subscribed to MQTT topic for discovery: %s", f"{TOPIC_PREFIX}+/switch/+/state")
+    _LOGGER.debug("Subscribed to MQTT topic for discovery: %s", f"{TOPIC_PREFIX}+/switch/+/state")
 
     # Register the `sync_device_states` function
     hass.bus.async_listen_once("homeassistant_started", sync_device_states)
