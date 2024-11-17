@@ -7,6 +7,10 @@ from homeassistant.helpers.storage import Store
 
 from .const import DOMAIN, TOPIC_PREFIX, SWITCH_SUBTOPIC, STATE_SUBTOPIC, SET_SUBTOPIC
 
+import logging
+
+_LOGGER = logging.getLogger(__name__)
+
 STORAGE_VERSION = 1
 STORAGE_KEY = f"{DOMAIN}_devices"
 
@@ -16,7 +20,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
         "entities": {},
         "set_topics": set(),
         "known_devices": {},
-        "platform_switch_setup_done": False,  # Track switch platform setup
+        "platform_switch_setup_done": False,
     })
     return True
 
@@ -26,7 +30,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         "entities": {},
         "set_topics": set(),
         "known_devices": {},
-        "platform_switch_setup_done": False,  # Track switch platform setup
+        "platform_switch_setup_done": False,
     })
 
     store = Store(hass, STORAGE_VERSION, STORAGE_KEY)
@@ -50,14 +54,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     async def discover_device(msg):
         topic = msg.topic
         payload = msg.payload
+        _LOGGER.warning("Received discovery message on topic: %s, payload: %s", topic, payload)
 
         # Expected topic: homeassistant/<device_id>/switch/<switch_id>/state
         parts = topic.split('/')
         if len(parts) != 5:
+            _LOGGER.error("Invalid topic structure: %s", topic)
             return
 
         _, device_id_raw, switch_subtopic, switch_id_raw, state_subtopic = parts
         if switch_subtopic != SWITCH_SUBTOPIC or state_subtopic != STATE_SUBTOPIC:
+            _LOGGER.warning("Topic does not match expected subtopics")
             return
 
         # Normalize IDs
@@ -67,6 +74,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         entity_id = f"{device_id}_{switch_id}"
 
         if entity_id in hass.data[DOMAIN]["entities"]:
+            _LOGGER.warning("Entity already exists: %s", entity_id)
             return
 
         # Store the set topic for synchronization
@@ -91,6 +99,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
         # Forward setup only if not already done
         if not hass.data[DOMAIN]["platform_switch_setup_done"]:
+            _LOGGER.warning("Forwarding entry setup for switches")
             hass.async_create_task(
                 hass.config_entries.async_forward_entry_setup(entry, "switch")
             )
@@ -102,8 +111,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         for device_entry in hass.data[DOMAIN]["known_devices"].values():
             for switch_info in device_entry.values():
                 set_topic = switch_info["set_topic"]
-                if "--" in set_topic:
-                    continue
                 await mqtt.async_publish(
                     hass,
                     set_topic,
@@ -114,6 +121,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Subscribe to state topics for discovery
     await mqtt.async_subscribe(hass, f"{TOPIC_PREFIX}+/switch/+/state", discover_device)
+    _LOGGER.warning("Subscribed to MQTT topic for discovery: %s", f"{TOPIC_PREFIX}+/switch/+/state")
 
     # Register the `sync_device_states` function
     hass.bus.async_listen_once("homeassistant_started", sync_device_states)
@@ -121,7 +129,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload the integration."""
-    # Unload the switch platform if it was loaded
     if hass.data[DOMAIN]["platform_switch_setup_done"]:
         unload_ok = await hass.config_entries.async_forward_entry_unload(entry, "switch")
         if unload_ok:
@@ -129,7 +136,6 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     else:
         unload_ok = True
 
-    # Clear integration data
     if unload_ok:
         hass.data.pop(DOMAIN)
     return unload_ok
