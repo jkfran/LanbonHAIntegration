@@ -16,6 +16,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
         "entities": {},
         "set_topics": set(),
         "known_devices": {},
+        "platform_switch_setup_done": False,  # Track switch platform setup
     })
     return True
 
@@ -25,6 +26,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         "entities": {},
         "set_topics": set(),
         "known_devices": {},
+        "platform_switch_setup_done": False,  # Track switch platform setup
     })
 
     store = Store(hass, STORAGE_VERSION, STORAGE_KEY)
@@ -37,6 +39,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     else:
         hass.data[DOMAIN]["known_devices"] = {}
         hass.data[DOMAIN]["set_topics"] = set()
+
+    # Re-register entities from known devices
+    for device_id, switches in hass.data[DOMAIN]["known_devices"].items():
+        for switch_id in switches:
+            entity_id = f"{device_id}_{switch_id}"
+            hass.data[DOMAIN]["entities"][entity_id] = True
 
     async def discover_device(msg):
         topic = msg.topic
@@ -80,9 +88,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
         hass.data[DOMAIN]["entities"][entity_id] = True
 
-        hass.async_create_task(
-            hass.config_entries.async_forward_entry_setup(entry, "switch")
-        )
+        # Forward setup only if not already done
+        if not hass.data[DOMAIN]["platform_switch_setup_done"]:
+            hass.data[DOMAIN]["platform_switch_setup_done"] = True
+            hass.async_create_task(
+                hass.config_entries.async_forward_entry_setup(entry, "switch")
+            )
 
     # Request device states on startup
     async def sync_device_states(event):
@@ -111,7 +122,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload the integration."""
-    unload_ok = await hass.config_entries.async_forward_entry_unload(entry, "switch")
+    # Unload the switch platform if it was loaded
+    if hass.data[DOMAIN]["platform_switch_setup_done"]:
+        unload_ok = await hass.config_entries.async_forward_entry_unload(entry, "switch")
+        if unload_ok:
+            hass.data[DOMAIN]["platform_switch_setup_done"] = False
+    else:
+        unload_ok = True
+
+    # Clear integration data
     if unload_ok:
         hass.data.pop(DOMAIN)
     return unload_ok
