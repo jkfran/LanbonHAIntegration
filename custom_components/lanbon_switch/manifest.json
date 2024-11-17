@@ -4,5 +4,6 @@
     "version": "1.0",
     "requirements": [],
     "dependencies": ["mqtt"],
-    "codeowners": ["@jkfran"]
+    "codeowners": ["@jkfran"],
+    "config_flow": true
 }
