@@ -1,7 +1,7 @@
 import asyncio
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
 from homeassistant.components import mqtt
-from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers.discovery import async_load_platform
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.helpers.storage import Store
 
@@ -11,6 +11,16 @@ STORAGE_VERSION = 1
 STORAGE_KEY = f"{DOMAIN}_devices"
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
+    """Set up the integration from YAML."""
+    hass.data.setdefault(DOMAIN, {
+        "entities": {},
+        "set_topics": set(),
+        "known_devices": {},
+    })
+    return True
+
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Set up the integration from a ConfigEntry (UI-based setup)."""
     hass.data.setdefault(DOMAIN, {
         "entities": {},
         "set_topics": set(),
@@ -71,19 +81,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
         hass.data[DOMAIN]["entities"][entity_id] = True
 
         hass.async_create_task(
-            async_load_platform(
-                hass,
-                "switch",
-                DOMAIN,
-                {
-                    "device_id": device_id,
-                    "device_id_raw": device_id_raw,
-                    "switch_id": switch_id,
-                    "switch_id_raw": switch_id_raw,
-                    "set_topic": set_topic,
-                },
-                config
-            )
+            hass.config_entries.async_forward_entry_setup(entry, "switch")
         )
 
     # Subscribe to state topics for discovery
@@ -109,3 +107,10 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 
     hass.bus.async_listen_once("homeassistant_started", sync_device_states)
     return True
+
+async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Unload the integration."""
+    unload_ok = await hass.config_entries.async_forward_entry_unload(entry, "switch")
+    if unload_ok:
+        hass.data.pop(DOMAIN)
+    return unload_ok
