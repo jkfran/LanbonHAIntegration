@@ -80,30 +80,33 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
         hass.data[DOMAIN]["entities"][entity_id] = True
 
-        hass.async_create_task(
-            hass.config_entries.async_forward_entry_setup(entry, "switch")
-        )
+        # Forward setup only if not already done
+        if "switch" not in hass.data[DOMAIN]["entities"]:
+            hass.async_create_task(
+                hass.config_entries.async_forward_entry_setup(entry, "switch")
+            )
 
-    # Subscribe to state topics for discovery
-    await mqtt.async_subscribe(hass, f"{TOPIC_PREFIX}+/switch/+/state", discover_device)
 
-    # Request device states on startup
-    async def sync_device_states(event):
-        # Ensure all devices are discovered before sending CHECK commands
-        await asyncio.sleep(1)
-        # Send "CHECK" to all known devices
-        for device_entry in hass.data[DOMAIN]["known_devices"].values():
-            for switch_info in device_entry.values():
-                set_topic = switch_info["set_topic"]
-                if "--" in set_topic:
-                    continue
-                await mqtt.async_publish(
-                    hass,
-                    set_topic,
-                    "OFF",
-                    qos=0,
-                    retain=False
-                )
+        # Subscribe to state topics for discovery
+        await mqtt.async_subscribe(hass, f"{TOPIC_PREFIX}+/switch/+/state", discover_device)
+
+        # Request device states on startup
+        async def sync_device_states(event):
+            # Ensure all devices are discovered before sending CHECK commands
+            await asyncio.sleep(1)
+            # Send "CHECK" to all known devices
+            for device_entry in hass.data[DOMAIN]["known_devices"].values():
+                for switch_info in device_entry.values():
+                    set_topic = switch_info["set_topic"]
+                    if "--" in set_topic:
+                        continue
+                    await mqtt.async_publish(
+                        hass,
+                        set_topic,
+                        "OFF",
+                        qos=0,
+                        retain=False
+                    )
 
     hass.bus.async_listen_once("homeassistant_started", sync_device_states)
     return True

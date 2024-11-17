@@ -29,6 +29,29 @@ async def async_setup_platform(
 
     async_add_entities([LANBONSwitch(hass, device_id, switch_id, device_id_raw, switch_id_raw, topic_state, set_topic)])
 
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback):
+    """Set up switches for a config entry."""
+    # Retrieve discovered devices from the integration's known devices
+    known_devices = hass.data[DOMAIN].get("known_devices", {})
+
+    entities = []
+    for device_id, switches in known_devices.items():
+        for switch_id, switch_info in switches.items():
+            topic_state = f"{TOPIC_PREFIX}{switch_info['device_id_raw']}/{SWITCH_SUBTOPIC}/{switch_info['switch_id_raw']}/state"
+            entities.append(
+                LANBONSwitch(
+                    hass,
+                    device_id,
+                    switch_id,
+                    switch_info["device_id_raw"],
+                    switch_info["switch_id_raw"],
+                    topic_state,
+                    switch_info["set_topic"],
+                )
+            )
+    async_add_entities(entities)
+
+
 class LANBONSwitch(SwitchEntity):
     def __init__(
         self,
