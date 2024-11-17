@@ -44,7 +44,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     for device_id, switches in hass.data[DOMAIN]["known_devices"].items():
         for switch_id in switches:
             entity_id = f"{device_id}_{switch_id}"
-            hass.data[DOMAIN]["entities"][entity_id] = True
+            if entity_id not in hass.data[DOMAIN]["entities"]:
+                hass.data[DOMAIN]["entities"][entity_id] = True
 
     async def discover_device(msg):
         topic = msg.topic
@@ -97,9 +98,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Request device states on startup
     async def sync_device_states(event):
-        # Ensure all devices are discovered before sending CHECK commands
         await asyncio.sleep(1)
-        # Send "CHECK" to all known devices
         for device_entry in hass.data[DOMAIN]["known_devices"].values():
             for switch_info in device_entry.values():
                 set_topic = switch_info["set_topic"]
