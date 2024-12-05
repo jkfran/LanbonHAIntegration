@@ -51,6 +51,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             if entity_id not in hass.data[DOMAIN]["entities"]:
                 hass.data[DOMAIN]["entities"][entity_id] = True
 
+    # If we have known devices but the switch platform hasn't been set up yet, do it now
+    if not hass.data[DOMAIN]["platform_switch_setup_done"] and hass.data[DOMAIN]["known_devices"]:
+        _LOGGER.debug("Forwarding entry setup for switches (from known devices)")
+        hass.async_create_task(
+            hass.config_entries.async_forward_entry_setup(entry, "switch")
+        )
+        hass.data[DOMAIN]["platform_switch_setup_done"] = True
+
     async def discover_device(msg):
         topic = msg.topic
         payload = msg.payload
