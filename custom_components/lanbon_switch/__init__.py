@@ -51,12 +51,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             if entity_id not in hass.data[DOMAIN]["entities"]:
                 hass.data[DOMAIN]["entities"][entity_id] = True
 
-    # If we have known devices but the switch platform hasn't been set up yet, do it now
-    if not hass.data[DOMAIN]["platform_switch_setup_done"] and hass.data[DOMAIN]["known_devices"]:
+    # Set up the switch platform if not already done and await it
+    if not hass.data[DOMAIN]["platform_switch_setup_done"]:
         _LOGGER.debug("Forwarding entry setup for switches (from known devices)")
-        hass.async_create_task(
-            hass.config_entries.async_forward_entry_setup(entry, "switch")
-        )
+        await hass.config_entries.async_forward_entry_setup(entry, "switch")
         hass.data[DOMAIN]["platform_switch_setup_done"] = True
 
     async def discover_device(msg):
@@ -104,13 +102,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
         hass.data[DOMAIN]["entities"][entity_id] = True
 
-        # Forward setup only if not already done
-        if not hass.data[DOMAIN]["platform_switch_setup_done"]:
-            _LOGGER.debug("Forwarding entry setup for switches")
-            hass.async_create_task(
-                hass.config_entries.async_forward_entry_setup(entry, "switch")
-            )
-            hass.data[DOMAIN]["platform_switch_setup_done"] = True
+        # Platform is already set up, so new entities should be added dynamically
+        # Note: This requires the switch platform to support dynamic entity addition
+        # Example: hass.data[DOMAIN]["switch_platform"].async_add_entities([new_entity])
 
     # Request device states on startup
     async def sync_device_states(event):
