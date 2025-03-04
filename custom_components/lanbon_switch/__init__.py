@@ -97,6 +97,19 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         })
 
         hass.data[DOMAIN]["entities"][entity_id] = True
+    
+        # Add the new entity dynamically if the callback exists
+        if "add_entities" in hass.data[DOMAIN]:
+            new_entity = LANBONSwitch(
+                hass,
+                device_id,
+                switch_id,
+                device_id_raw,
+                switch_id_raw,
+                f"{TOPIC_PREFIX}{device_id_raw}/{SWITCH_SUBTOPIC}/{switch_id_raw}/{STATE_SUBTOPIC}",
+                set_topic,
+            )
+            hass.data[DOMAIN]["add_entities"]([new_entity], update_before_add=True)
 
     # Request device states on startup
     async def sync_device_states(event):
