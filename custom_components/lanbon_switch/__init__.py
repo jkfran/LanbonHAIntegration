@@ -20,7 +20,6 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
         "entities": {},
         "set_topics": set(),
         "known_devices": {},
-        "platform_switch_setup_done": False,
     })
     return True
 
@@ -30,7 +29,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         "entities": {},
         "set_topics": set(),
         "known_devices": {},
-        "platform_switch_setup_done": False,
     })
 
     store = Store(hass, STORAGE_VERSION, STORAGE_KEY)
@@ -51,11 +49,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             if entity_id not in hass.data[DOMAIN]["entities"]:
                 hass.data[DOMAIN]["entities"][entity_id] = True
 
-    # Set up the switch platform if not already done and await it
-    if not hass.data[DOMAIN]["platform_switch_setup_done"]:
-        _LOGGER.debug("Forwarding entry setup for switches (from known devices)")
-        await hass.config_entries.async_forward_entry_setup(entry, "switch")
-        hass.data[DOMAIN]["platform_switch_setup_done"] = True
+    # Always forward entry setup for switches
+    _LOGGER.debug("Forwarding entry setup for switches (from known devices)")
+    await hass.config_entries.async_forward_entry_setup(entry, "switch")
 
     async def discover_device(msg):
         topic = msg.topic
@@ -102,10 +98,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
         hass.data[DOMAIN]["entities"][entity_id] = True
 
-        # Platform is already set up, so new entities should be added dynamically
-        # Note: This requires the switch platform to support dynamic entity addition
-        # Example: hass.data[DOMAIN]["switch_platform"].async_add_entities([new_entity])
-
     # Request device states on startup
     async def sync_device_states(event):
         await asyncio.sleep(1)
@@ -130,13 +122,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload the integration."""
-    if hass.data[DOMAIN]["platform_switch_setup_done"]:
-        unload_ok = await hass.config_entries.async_forward_entry_unload(entry, "switch")
-        if unload_ok:
-            hass.data[DOMAIN]["platform_switch_setup_done"] = False
-    else:
-        unload_ok = True
-
+    unload_ok = await hass.config_entries.async_forward_entry_unload(entry, "switch")
     if unload_ok:
-        hass.data.pop(DOMAIN)
+        hass.data.pop(DOMAIN, None)
     return unload_ok
