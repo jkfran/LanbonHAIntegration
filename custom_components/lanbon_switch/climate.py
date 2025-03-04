@@ -20,24 +20,25 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     entities = []
 
     for device_key, device_info in known_devices.items():
-        device_type, device_id = device_key
-        if device_type == "thermostat":
-            for thermostat_id, thermostat_info in device_info.items():
-                _LOGGER.debug("Adding thermostat entity for device: %s, thermostat: %s", device_id, thermostat_id)
-                entities.append(
-                    LANBONThermostat(
-                        hass,
-                        device_id,
-                        thermostat_id,
-                        thermostat_info["device_id_raw"],
-                        thermostat_info["thermostat_id_raw"],
-                        thermostat_info["temperature_state_topic"],
-                        thermostat_info["temperature_detect_topic"],
-                        thermostat_info["mode_state_topic"],
-                        thermostat_info["temperature_set_topic"],
-                        thermostat_info["mode_set_topic"],
+        if isinstance(device_key, tuple) and len(device_key) == 2:
+            device_type, device_id = device_key
+            if device_type == "thermostat":
+                for thermostat_id, thermostat_info in device_info.items():
+                    _LOGGER.debug("Adding thermostat entity for device: %s, thermostat: %s", device_id, thermostat_id)
+                    entities.append(
+                        LANBONThermostat(
+                            hass,
+                            device_id,
+                            thermostat_id,
+                            thermostat_info["device_id_raw"],
+                            thermostat_info["thermostat_id_raw"],
+                            thermostat_info["temperature_state_topic"],
+                            thermostat_info["temperature_detect_topic"],
+                            thermostat_info["mode_state_topic"],
+                            thermostat_info["temperature_set_topic"],
+                            thermostat_info["mode_set_topic"],
+                        )
                     )
-                )
     async_add_entities(entities, update_before_add=True)
     hass.data[DOMAIN]["add_climate_entities"] = async_add_entities
 
