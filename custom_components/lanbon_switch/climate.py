@@ -1,9 +1,5 @@
-from homeassistant.components.climate import ClimateEntity
-from homeassistant.components.climate.const import (
-    HVAC_MODE_OFF,
-    HVAC_MODE_AUTO,
-    SUPPORT_TARGET_TEMPERATURE,
-)
+from homeassistant.components.climate import ClimateEntity, HVACMode
+from homeassistant.components.climate.const import SUPPORT_TARGET_TEMPERATURE
 from homeassistant.const import TEMP_CELSIUS
 from homeassistant.core import callback
 from homeassistant.components import mqtt
@@ -14,7 +10,7 @@ import logging
 
 _LOGGER = logging.getLogger(__name__)
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities):
+async def async_setup_entry(hass, entry, async_add_entities):
     """Set up climate entities for a config entry."""
     known_devices = hass.data[DOMAIN].get("known_devices", {})
     entities = []
@@ -95,14 +91,14 @@ class LANBONThermostat(ClimateEntity):
     @property
     def hvac_mode(self):
         if self._mode == "off":
-            return HVAC_MODE_OFF
+            return HVACMode.OFF
         elif self._mode == "auto":
-            return HVAC_MODE_AUTO
-        return HVAC_MODE_OFF
+            return HVACMode.AUTO
+        return HVACMode.OFF
 
     @property
     def hvac_modes(self):
-        return [HVAC_MODE_OFF, HVAC_MODE_AUTO]
+        return [HVACMode.OFF, HVACMode.AUTO]
 
     @property
     def supported_features(self):
@@ -116,7 +112,7 @@ class LANBONThermostat(ClimateEntity):
             self.async_write_ha_state()
 
     async def async_set_hvac_mode(self, hvac_mode):
-        mode = "off" if hvac_mode == HVAC_MODE_OFF else "auto"
+        mode = "off" if hvac_mode == HVACMode.OFF else "auto"
         await mqtt.async_publish(self.hass, self._mode_set_topic, mode, qos=0, retain=False)
         self._mode = mode
         self.async_write_ha_state()
