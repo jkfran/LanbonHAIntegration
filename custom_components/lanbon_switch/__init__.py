@@ -51,7 +51,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Always forward entry setup for switches
     _LOGGER.debug("Forwarding entry setup for switches (from known devices)")
-    await hass.config_entries.async_forward_entry_setup(entry, "switch")
+    await hass.config_entries.async_forward_entry_setups(entry, ["switch"])
 
     async def discover_device(msg):
         topic = msg.topic
