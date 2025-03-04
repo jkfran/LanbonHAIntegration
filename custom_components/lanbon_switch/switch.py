@@ -32,6 +32,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
                 )
             )
     async_add_entities(entities, update_before_add=True)
+    # Store the callback for dynamic addition
+    hass.data[DOMAIN]["add_entities"] = async_add_entities
 
 class LANBONSwitch(SwitchEntity):
     def __init__(
